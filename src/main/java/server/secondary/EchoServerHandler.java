@@ -10,6 +10,14 @@ public class EchoServerHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        for (int i = 0; i < 5; i++) {
+            System.out.println(i);
+            try {
+                Thread.sleep(1000);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         System.out.println("EchoServerHandler - channelRead");
         ctx.write(msg);
     }

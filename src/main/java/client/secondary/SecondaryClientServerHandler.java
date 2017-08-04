@@ -36,5 +36,8 @@ public class SecondaryClientServerHandler extends ChannelInboundHandlerAdapter {
         int result = b.getInt(0);
 
         System.out.println("Received: " + result);
+
+        inboundChannel.write(result);
+        inboundChannel.flush();
     }
 }

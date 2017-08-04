@@ -4,5 +4,5 @@ Simple three server example to get used to the [netty](https://netty.io) framewo
 
 `Run PrimaryServerBootstrap`
 
-`Run PersonClient`
+`Run IntegerClient`
 

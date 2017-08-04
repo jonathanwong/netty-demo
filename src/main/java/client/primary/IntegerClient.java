@@ -11,7 +11,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 /**
  * Created by jon on 5/20/17.
  */
-public class PersonClient {
+public class IntegerClient {
 
     static final String HOST = "localhost";
     static final int PORT = 3010;
@@ -19,13 +19,13 @@ public class PersonClient {
     private String host;
     private int port;
 
-    public PersonClient(String host, int port) {
+    public IntegerClient(String host, int port) {
         this.host = host;
         this.port = port;
     }
 
     public static void main(String[] args) throws Exception {
-        new PersonClient(HOST, PORT).start();
+        new IntegerClient(HOST, PORT).start();
     }
 
     public void start() throws Exception {
@@ -38,7 +38,7 @@ public class PersonClient {
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel ch) throws Exception {
-                            ch.pipeline().addLast(new PersonClientHandler());
+                            ch.pipeline().addLast(new IntegerClientHandler());
                         }
                     });
 
