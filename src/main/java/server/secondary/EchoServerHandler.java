@@ -18,7 +18,7 @@ public class EchoServerHandler extends ChannelInboundHandlerAdapter {
                 e.printStackTrace();
             }
         }
-        System.out.println("EchoServerHandler - channelRead");
+        System.out.println("EchoServerHandler - channelRead: " + msg);
         ctx.write(msg);
     }
 
