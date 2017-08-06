@@ -42,13 +42,20 @@ public class SslServerBootstrap {
     public void start() throws Exception {
         TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         KeyStore trustStore = KeyStore.getInstance("JKS");
-        trustStore.load(new FileInputStream("trustStore.jks"), CryptoUtils.TRUST_STORE_PASSWORD);
+        trustStore.load(new FileInputStream(CryptoUtils.TRUST_STORE_NAME + ".jks"), CryptoUtils.TRUST_STORE_PASSWORD);
         trustManagerFactory.init(trustStore);
 
+        // 1) If you created the new keys and certs
         SslContext sslContext = SslContextBuilder.forServer(new FileInputStream(new File(CryptoUtils.ROOT_CERT)), new FileInputStream(new File(CryptoUtils.ROOT_KEY)), null)
                 .clientAuth(ClientAuth.REQUIRE)
                 .trustManager(trustManagerFactory)
                 .build();
+
+        // 2) If you used existing keys and certs
+//        SslContext sslContext = SslContextBuilder.forServer(new FileInputStream(new File(System.getProperty("user.dir") + File.separator + "mycert.pem")), new FileInputStream(new File(System.getProperty("user.dir") + File.separator + "mykey.pem")), null)
+//                .clientAuth(ClientAuth.REQUIRE)
+//                .trustManager(trustManagerFactory)
+//                .build();
 
         NioEventLoopGroup bossGroup = new NioEventLoopGroup(1);
         NioEventLoopGroup workerGroup = new NioEventLoopGroup();

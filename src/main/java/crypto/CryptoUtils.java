@@ -1,5 +1,6 @@
 package crypto;
 
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.BasicConstraints;
 import org.bouncycastle.asn1.x509.Extension;
@@ -11,6 +12,8 @@ import org.bouncycastle.cert.jcajce.JcaX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaX509v1CertificateBuilder;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.openssl.jcajce.JcaPKCS8Generator;
 import org.bouncycastle.operator.ContentSigner;
@@ -19,9 +22,7 @@ import org.bouncycastle.util.io.pem.PemObject;
 
 import javax.security.auth.x500.X500Principal;
 import javax.security.auth.x500.X500PrivateCredential;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.*;
@@ -56,6 +57,7 @@ public class CryptoUtils {
     }
 
     public static void main(String[] args) throws Exception {
+        // 1) new keys -----------
         if (Security.getProvider("BC") != null) {
             System.out.println("BC is installed");
         }
@@ -85,6 +87,10 @@ public class CryptoUtils {
         serverKeyStore.setKeyEntry(SERVER_NAME, rootCredential.getPrivateKey(), SERVER_PASSWORD,
                 new Certificate[] {rootCredential.getCertificate()});
         serverKeyStore.store(new FileOutputStream(SERVER_NAME + ".jks"), SERVER_PASSWORD);
+
+        // 2) Existing keys --------
+        // If you have existing keys and certs, here is an example of how to set up SSL
+//        createTrustStore();
     }
 
     /**
@@ -193,5 +199,56 @@ public class CryptoUtils {
             jcaPEMWriter.close();
             fileWriter.close();
         }
+    }
+
+    /**
+     * Reads root credentials from existing system
+     * @return
+     * @throws Exception
+     */
+    private static X500PrivateCredential readRootCredentials() throws Exception {
+        File privateKeyFile = new File(System.getProperty("user.dir") + File.separator + "mykey.pem");
+        PEMParser pemParser = new PEMParser(new FileReader(privateKeyFile));
+        Object privateKeyInfo = pemParser.readObject();
+        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
+        PrivateKey privateKey = converter.getPrivateKey((PrivateKeyInfo) privateKeyInfo);
+
+        CertificateFactory certficateFactory = CertificateFactory.getInstance("X.509");
+        FileInputStream fileInputStream = new FileInputStream(System.getProperty("user.dir") + File.separator + "mycert.pem");
+        X509Certificate cer = (X509Certificate) certficateFactory.generateCertificate(fileInputStream);
+
+        return new X500PrivateCredential(cer, privateKey, ROOT_ALIAS);
+    }
+
+    private static void createTrustStore() throws Exception {
+        X500PrivateCredential rootCredential = readRootCredentials();
+
+        // create trust store for server and client
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        keyStore.load(null, null);
+        keyStore.setCertificateEntry(SERVER_NAME, rootCredential.getCertificate());
+        keyStore.store(new FileOutputStream(TRUST_STORE_NAME + ".jks"), TRUST_STORE_PASSWORD);
+
+        // server creds
+        keyStore.getInstance("JKS");
+        keyStore.load(null, null);
+        keyStore.setKeyEntry(SERVER_NAME, rootCredential.getPrivateKey(), SERVER_PASSWORD,
+                new Certificate[] {
+                rootCredential.getCertificate()
+                });
+        keyStore.store(new FileOutputStream(SERVER_NAME + ".jks"), SERVER_PASSWORD);
+
+        // client creds
+        X500PrivateCredential interCredential = createIntermediateCredential(rootCredential.getPrivateKey(), rootCredential.getCertificate());
+        X500PrivateCredential endCredential = createEndEntityCredential(interCredential.getPrivateKey(), interCredential.getCertificate());
+
+        // client credentials
+        KeyStore clientKeyStore = KeyStore.getInstance("JKS");
+        clientKeyStore.load(null, null);
+        clientKeyStore.setKeyEntry(CLIENT_NAME, endCredential.getPrivateKey(), CLIENT_PASSWORD,
+                new Certificate[]{endCredential.getCertificate(),
+                        interCredential.getCertificate(),
+                        rootCredential.getCertificate()});
+        clientKeyStore.store(new FileOutputStream(CLIENT_NAME + ".jks"), CLIENT_PASSWORD);
     }
 }
