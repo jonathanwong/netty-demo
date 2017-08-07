@@ -222,6 +222,17 @@ public class CryptoUtils {
 
     private static void createTrustStore() throws Exception {
         X500PrivateCredential rootCredential = readRootCredentials();
+        X500PrivateCredential interCredential = createIntermediateCredential(rootCredential.getPrivateKey(), rootCredential.getCertificate());
+        X500PrivateCredential endCredential = createEndEntityCredential(interCredential.getPrivateKey(), interCredential.getCertificate());
+
+        // client credentials
+        KeyStore clientKeyStore = KeyStore.getInstance("JKS");
+        clientKeyStore.load(null, null);
+        clientKeyStore.setKeyEntry(CLIENT_NAME, endCredential.getPrivateKey(), CLIENT_PASSWORD,
+                new Certificate[]{endCredential.getCertificate(),
+                        interCredential.getCertificate(),
+                        rootCredential.getCertificate()});
+        clientKeyStore.store(new FileOutputStream(CLIENT_NAME + ".jks"), CLIENT_PASSWORD);
 
         // create trust store for server and client
         KeyStore keyStore = KeyStore.getInstance("JKS");
@@ -237,18 +248,5 @@ public class CryptoUtils {
                 rootCredential.getCertificate()
                 });
         keyStore.store(new FileOutputStream(SERVER_NAME + ".jks"), SERVER_PASSWORD);
-
-        // client creds
-        X500PrivateCredential interCredential = createIntermediateCredential(rootCredential.getPrivateKey(), rootCredential.getCertificate());
-        X500PrivateCredential endCredential = createEndEntityCredential(interCredential.getPrivateKey(), interCredential.getCertificate());
-
-        // client credentials
-        KeyStore clientKeyStore = KeyStore.getInstance("JKS");
-        clientKeyStore.load(null, null);
-        clientKeyStore.setKeyEntry(CLIENT_NAME, endCredential.getPrivateKey(), CLIENT_PASSWORD,
-                new Certificate[]{endCredential.getCertificate(),
-                        interCredential.getCertificate(),
-                        rootCredential.getCertificate()});
-        clientKeyStore.store(new FileOutputStream(CLIENT_NAME + ".jks"), CLIENT_PASSWORD);
     }
 }
